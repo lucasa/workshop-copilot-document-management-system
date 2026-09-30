@@ -78,7 +78,7 @@ Permitir que usuários enviem, listem e baixem seus documentos, armazenando os a
 | `size` | number | Pública | Tamanho do arquivo em bytes. |
 | `uploadedAt` | string | Pública | Data/hora do upload em ISO 8601 UTC. |
 | `owner` | string | Pública | Identificador lógico recebido em `X-User-Id`. |
-| `contentType` | string ou null | Pública | Tipo informado/detectado para definir o tipo da resposta de download. |
+| `contentType` | string ou null | Pública | Tipo informado pelo cliente, não verificado e não usado como tipo da resposta de download. |
 | `storageName` | string | Interna | Nome único gerado para localizar o arquivo no diretório local. |
 
 O DTO público não inclui `storageName`, caminho absoluto nem qualquer informação do filesystem.
@@ -148,7 +148,7 @@ Retorna lista vazia quando o usuário ainda não enviou documentos. Erros: `400`
 
 Cabeçalhos: `X-User-Id: <identificador>`.
 
-Sucesso: `200 OK`, corpo binário, `Content-Type` conforme o documento (ou `application/octet-stream`), `Content-Length` e `Content-Disposition: attachment` com nome seguro para download.
+Sucesso: `200 OK`, corpo binário, `Content-Type: application/octet-stream`, `Content-Length` e `Content-Disposition: attachment` com nome seguro para download.
 
 Erros: `400` (`USER_ID_REQUIRED`), `404` (`DOCUMENT_NOT_FOUND`) quando ausente ou não pertencente ao usuário, e `500` (`INTERNAL_ERROR`).
 

@@ -54,7 +54,7 @@ async function downloadDocument(req, res, next) {
       .pop()
       .replace(/[\r\n"]/g, '_');
 
-    res.set('Content-Type', document.contentType || 'application/octet-stream');
+    res.set('Content-Type', 'application/octet-stream');
     res.set('X-Content-Type-Options', 'nosniff');
     return res.download(filePath, downloadName || 'document', (error) => {
       if (error) {

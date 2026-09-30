@@ -50,6 +50,10 @@ export default function App() {
     const userId = userIdDraft.trim();
     if (!userId) return;
 
+    if (userId !== activeUserId) {
+      setDocuments([]);
+      setListError('');
+    }
     window.localStorage.setItem('dms-user-id', userId);
     setUserIdDraft(userId);
     setActiveUserId(userId);
@@ -108,6 +112,7 @@ export default function App() {
             <span className="section-index">01</span>
           </div>
           <UploadComponent
+            key={activeUserId}
             userId={activeUserId}
             onUploadComplete={refreshDocuments}
           />

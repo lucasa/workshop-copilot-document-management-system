@@ -40,6 +40,20 @@ test('permite enviar, listar e baixar documentos somente pelo proprietário', as
   assert.strictEqual(emptyFormResponse.status, 400);
   assert.strictEqual((await emptyFormResponse.json()).error.code, 'FILE_REQUIRED');
 
+  const multipartWithField = new FormData();
+  multipartWithField.append('metadata', 'valor inesperado');
+  multipartWithField.append('file', new Blob(['conteudo']), 'nota.txt');
+  const invalidMultipartResponse = await fetch(`${baseUrl}/upload`, {
+    method: 'POST',
+    headers: { 'X-User-Id': 'usuario-a' },
+    body: multipartWithField,
+  });
+  assert.strictEqual(invalidMultipartResponse.status, 400);
+  assert.strictEqual(
+    (await invalidMultipartResponse.json()).error.code,
+    'INVALID_MULTIPART',
+  );
+
   const formData = new FormData();
   formData.append('file', new Blob(['conteudo do arquivo'], { type: 'text/plain' }), 'nota.txt');
   const uploadResponse = await fetch(`${baseUrl}/upload`, {
@@ -48,7 +62,7 @@ test('permite enviar, listar e baixar documentos somente pelo proprietário', as
     body: formData,
   });
 
-  assert.strictEqual(uploadResponse.status, 201);
+  assert.strictEqual(uploadResponse.status, 201, await uploadResponse.clone().text());
   const { document } = await uploadResponse.json();
   assert.strictEqual(document.originalName, 'nota.txt');
   assert.strictEqual(document.owner, 'usuario-a');
@@ -85,6 +99,10 @@ test('permite enviar, listar e baixar documentos somente pelo proprietário', as
   });
   assert.strictEqual(downloadResponse.status, 200);
   assert.strictEqual(await downloadResponse.text(), 'conteudo do arquivo');
+  assert.strictEqual(
+    downloadResponse.headers.get('content-type'),
+    'application/octet-stream',
+  );
   assert.match(downloadResponse.headers.get('content-disposition'), /attachment/);
 
   const forbiddenDownloadResponse = await fetch(

@@ -1,9 +1,6 @@
 const fs = require('node:fs/promises');
 const path = require('node:path');
-
-const storageDirectory = path.resolve(
-  process.env.DMS_STORAGE_DIR || path.join(__dirname, '../../storage'),
-);
+const { storageDirectory } = require('../config/storageConfig');
 const documents = new Map();
 
 async function add(document) {
