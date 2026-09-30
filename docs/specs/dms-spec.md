@@ -52,12 +52,20 @@ Permitir que usuários enviem, listem e baixem seus documentos, armazenando os a
 | RNF-02 | O diretório padrão de armazenamento é `backend/storage`, configurável por ambiente. |
 | RNF-03 | Metadados ficam em memória e são perdidos ao reiniciar o processo. |
 | RNF-04 | O limite de upload é configurável por ambiente; padrão: 10 MiB por arquivo. |
-| RNF-05 | Usar variáveis de ambiente para configuração, incluindo `PORT`, diretório de armazenamento e limite de upload. |
+| RNF-05 | Usar variáveis de ambiente para configuração, incluindo `PORT`, `DMS_STORAGE_DIR` e `DMS_MAX_FILE_SIZE_BYTES`. |
 | RNF-06 | Gerar nome interno único para o arquivo; nunca usar diretamente o nome enviado pelo cliente como caminho de armazenamento. |
 | RNF-07 | Respostas de erro seguem formato consistente e não expõem caminhos locais, stack traces ou detalhes internos. |
 | RNF-08 | Usar CommonJS no backend, JavaScript sem TypeScript e o runner nativo `node:test` para testes backend. |
 | RNF-09 | O frontend consome a API por `fetch` usando `/api` e o proxy Vite existente. |
 | RNF-10 | O MVP é destinado a execução em uma única instância; múltiplos processos não compartilham o repositório de metadados em memória. |
+
+### Configuração
+
+| Variável | Padrão | Descrição |
+| --- | --- | --- |
+| `PORT` | `3000` | Porta HTTP do backend. |
+| `DMS_STORAGE_DIR` | `backend/storage` | Diretório local para gravação dos arquivos. O valor padrão é relativo à raiz do backend. |
+| `DMS_MAX_FILE_SIZE_BYTES` | `10485760` (10 MiB) | Limite máximo por arquivo, em bytes. Valores não positivos ou inválidos usam o padrão. |
 
 ## 5. Modelo de dados
 
@@ -76,6 +84,8 @@ Permitir que usuários enviem, listem e baixem seus documentos, armazenando os a
 O DTO público não inclui `storageName`, caminho absoluto nem qualquer informação do filesystem.
 
 ## 6. Contratos de API
+
+As rotas Express são `POST /upload`, `GET /documents` e `GET /documents/:id/download`. No navegador, o frontend acessa os caminhos equivalentes sob `/api`; o proxy do Vite remove esse prefixo antes de encaminhar as requisições ao backend. O endpoint de saúde é `GET /health`.
 
 Todas as respostas de erro usam o formato:
 
@@ -109,7 +119,7 @@ Sucesso: `201 Created`.
 }
 ```
 
-Erros: `400` (`USER_ID_REQUIRED`, `FILE_REQUIRED`), `413` (`FILE_TOO_LARGE`) e `500` (`INTERNAL_ERROR`).
+Erros: `400` (`USER_ID_REQUIRED`, `FILE_REQUIRED`, `INVALID_MULTIPART`), `413` (`FILE_TOO_LARGE`) e `500` (`INTERNAL_ERROR`). `INVALID_MULTIPART` cobre erros de processamento multipart do Multer, como campo inesperado ou mais de um arquivo.
 
 ### `GET /api/documents`
 
@@ -156,13 +166,13 @@ Erros: `400` (`USER_ID_REQUIRED`), `404` (`DOCUMENT_NOT_FOUND`) quando ausente o
 
 ## 8. Plano de execução
 
-As etapas abaixo são futuras; para esta solicitação, o único artefato previsto é este documento.
+Etapas executadas para a versão atual do MVP:
 
-1. **Definir configuração e persistência.** Prever `backend/src/repositories/documentRepository.js` e configuração do armazenamento. Critérios: diretório local configurável, nome interno único, metadados em memória e limite de tamanho aplicado.
-2. **Implementar regras de negócio.** Prever `backend/src/services/documentService.js`. Critérios: upload, listagem ordenada, associação ao proprietário e consulta de download com verificação de propriedade.
-3. **Expor API e tratar erros.** Prever arquivos em `backend/src/routes/`, `controllers/` e middleware de erro, além de ajustes em `backend/src/app.js`. Critérios: contratos desta especificação, códigos HTTP consistentes, preservação de `/health` e ausência de caminhos internos nas respostas.
-4. **Construir a interface.** Prever arquivos em `frontend/src/pages/`, `components/` e `services/`. Critérios: upload, listagem, download e estados de carregamento, vazio, sucesso e erro; chamadas via `/api`.
-5. **Verificar integração e limites.** Prever testes em `backend/test/` e ajustes pontuais nos testes existentes. Critérios: cobertura dos fluxos de sucesso, entrada inválida, limite de tamanho, isolamento por proprietário, documento ausente e execução do build frontend.
+1. **Concluída — configuração e persistência.** `backend/src/repositories/documentRepository.js` mantém metadados em memória e acessa arquivos no diretório local configurado. Multer gera nomes internos únicos e aplica o limite de tamanho.
+2. **Concluída — regras de negócio.** `backend/src/services/documentService.js` implementa upload, listagem ordenada por data, associação ao proprietário e verificação de propriedade no download.
+3. **Concluída — API e erros.** Rotas, controllers e tratamento de erros estão registrados em `backend/src/app.js`; `/health` foi mantido e os DTOs não expõem o nome interno de armazenamento.
+4. **Concluída — interface.** `frontend/src/App.jsx` integra upload, listagem e download por componentes reutilizáveis; o cliente usa `fetch` através de `/api`.
+5. **Concluída — integração e limites.** Os testes backend cobrem sucesso, usuário ausente, arquivo ausente, tamanho excedido e isolamento por proprietário. O build de produção do frontend foi verificado.
 
 ## 9. Critérios de aceite
 
@@ -172,4 +182,4 @@ As etapas abaixo são futuras; para esta solicitação, o único artefato previs
 - Erros de entrada e limite de tamanho são tratados sem expor detalhes internos.
 - O comportamento de perda de metadados após reinício está documentado e não é apresentado como persistência durável.
 - O endpoint `/health` existente permanece funcional.
-- Testes backend e build frontend passam após a implementação futura.
+- A suíte backend (`npm test` em `backend/`) e o build frontend (`npm run build` em `frontend/`) passam na versão implementada.
